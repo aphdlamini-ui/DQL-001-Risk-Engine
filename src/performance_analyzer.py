@@ -10,35 +10,45 @@ def load_trades():
         return None
 
 
+# -----------------------------
+# EQUITY CURVE (FIXED)
+# -----------------------------
 def equity_curve(df):
-    equity = [df["account_balance"].iloc[0]]
+    df = df.copy()
 
-    for pnl in df["pnl"]:
-        equity.append(equity[-1] + pnl)
+    df["equity"] = df["account_balance"] + df["pnl"].cumsum()
 
-    return pd.Series(equity[1:])
+    return df["equity"]
 
+
+# -----------------------------
+# DRAWDOWN (FIXED)
+# -----------------------------
 def drawdown(df):
     equity = equity_curve(df)
-    peak = []
-    current_peak = 0
 
-    for e in equity:
-        current_peak = max(current_peak, e)
-        peak.append(current_peak)
+    peak = equity.cummax()
+    dd = equity - peak
 
-    return [e - p for e, p in zip(equity, peak)]
+    return dd
 
 
+# -----------------------------
+# WIN RATE
+# -----------------------------
 def win_rate(df):
-    wins = df[df["pnl"] > 0].shape[0]
-    total = df.shape[0]
-    return (wins / total) * 100 if total > 0 else 0
+    return (df["pnl"] > 0).mean() * 100 if len(df) > 0 else 0
 
 
+# -----------------------------
+# TOTAL PNL
+# -----------------------------
 def total_pnl(df):
     return df["pnl"].sum()
 
 
+# -----------------------------
+# PNL BY ASSET
+# -----------------------------
 def pnl_by_asset(df):
     return df.groupby("asset")["pnl"].sum()
